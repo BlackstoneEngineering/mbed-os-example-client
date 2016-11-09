@@ -29,12 +29,13 @@
 #include "security.h"
 #include "mbed.h"
 
-#define ETHERNET        1
-#define WIFI            2
-#define MESH_LOWPAN_ND  3
-#define MESH_THREAD     4
-#define ATMEL           5
-#define MCR20           6
+//TODO: Remove
+// #define ETHERNET        1
+// #define WIFI            2
+// #define MESH_LOWPAN_ND  3
+// #define MESH_THREAD     4
+// #define ATMEL           5
+// #define MCR20           6
 
 #define STRINGIFY(s) #s
 
@@ -42,7 +43,7 @@
 M2MInterface::NetworkStack NETWORK_STACK = M2MInterface::LwIP_IPv4;
 
 //Select binding mode: UDP or TCP
-M2MInterface::BindingMode SOCKET_MODE = M2MInterface::UDP;
+M2MInterface::BindingMode SOCKET_MODE = MBED_CONF_APP_CLIENT_MODE; // config from mbed_app.json config
 
 
 // MBED_DOMAIN and MBED_ENDPOINT_NAME come
@@ -103,35 +104,34 @@ public:
     */
     void create_interface(const char *server_address,
                           void *handler=NULL) {
-    // Randomizing listening port for Certificate mode connectivity
-    _server_address = server_address;
-    uint16_t port = rand() % 65535 + 12345;
+        // Randomizing listening port for Certificate mode connectivity
+        _server_address = server_address;
+        uint16_t port = rand() % 65535 + 12345;
 
-    // In case of Mesh or Thread use M2MInterface::Nanostack_IPv6
-#if MBED_CONF_APP_NETWORK_INTERFACE == MESH_LOWPAN_ND
-    NETWORK_STACK = M2MInterface::Nanostack_IPv6;
-#elif MBED_CONF_APP_NETWORK_INTERFACE == MESH_THREAD
-    NETWORK_STACK = M2MInterface::Nanostack_IPv6;
-#endif
+    // TODO: Delete this
+    //     // In case of Mesh or Thread use M2MInterface::Nanostack_IPv6
+    // #if MBED_CONF_APP_NETWORK_INTERFACE == MESH_LOWPAN_ND
+    //     NETWORK_STACK = M2MInterface::Nanostack_IPv6;
+    // #elif MBED_CONF_APP_NETWORK_INTERFACE == MESH_THREAD
+    //     NETWORK_STACK = M2MInterface::Nanostack_IPv6;
+    // #endif
 
-    // create mDS interface object, this is the base object everything else attaches to
-    _interface = M2MInterfaceFactory::create_interface(*this,
-                                                      MBED_ENDPOINT_NAME,       // endpoint name string
-                                                      "test",                   // endpoint type string
-                                                      100,                      // lifetime
-                                                      port,                     // listen port
-                                                      MBED_DOMAIN,              // domain string
-                                                      SOCKET_MODE,              // binding mode
-                                                      NETWORK_STACK,            // network stack
-                                                      "");                      // context address string
-    const char *binding_mode = (SOCKET_MODE == M2MInterface::UDP) ? "UDP" : "TCP";
-    printf("\r\nSOCKET_MODE : %s\r\n", binding_mode);
-    printf("Connecting to %s\r\n", server_address);
+        // create mDS interface object, this is the base object everything else attaches to
+        _interface = M2MInterfaceFactory::create_interface(*this,
+                                                          MBED_ENDPOINT_NAME,       // endpoint name string
+                                                          "test",                   // endpoint type string
+                                                          100,                      // lifetime
+                                                          port,                     // listen port
+                                                          MBED_DOMAIN,              // domain string
+                                                          SOCKET_MODE,              // binding mode
+                                                          NETWORK_STACK,            // network stack
+                                                          "");                      // context address string
+        printf("\r\nSOCKET_MODE : %s\r\n", MBED_CONF_APP_CLIENT_MODE);
+        printf("Connecting to %s\r\n", server_address);
 
-    if(_interface) {
-        _interface->set_platform_network_handler(handler);
-    }
-
+        if(_interface) {
+            _interface->set_platform_network_handler(handler);
+        }
     }
 
     /*
