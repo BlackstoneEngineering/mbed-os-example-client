@@ -39,6 +39,10 @@
 
 #define STRINGIFY(s) #s
 
+extern DigitalOut red_led;
+extern DigitalOut green_led;
+extern DigitalOut blue_led;
+
 //Select network stack mode: IPv4 or IPv6
 M2MInterface::NetworkStack NETWORK_STACK = M2MInterface::LwIP_IPv4;
 
@@ -253,6 +257,9 @@ public:
     // the callback.
     void error(M2MInterface::Error error){
         _error = true;
+        green_led = OFF;
+        blue_led = OFF;
+        red_led = ON;
         switch(error){
             case M2MInterface::AlreadyExists:
                 trace_printer("[ERROR:] M2MInterface::AlreadyExist");
