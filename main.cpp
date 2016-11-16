@@ -25,35 +25,9 @@
 #include "mbed.h"
 #include "rtos.h"
 
-//TODO Remove extras
-// #if MBED_CONF_APP_NETWORK_INTERFACE == WIFI
-// #include "ESP8266Interface.h"
-// ESP8266Interface esp(MBED_CONF_APP_WIFI_TX, MBED_CONF_APP_WIFI_RX);
-// #elif MBED_CONF_APP_NETWORK_INTERFACE == ETHERNET
 #include "EthernetInterface.h"
 EthernetInterface eth;
-// #elif MBED_CONF_APP_NETWORK_INTERFACE == MESH_LOWPAN_ND
-// #define MESH
-// #include "NanostackInterface.h"
-// LoWPANNDInterface mesh;
-// #elif MBED_CONF_APP_NETWORK_INTERFACE == MESH_THREAD
-// #define MESH
-// #include "NanostackInterface.h"
-// ThreadInterface mesh;
-// #endif
 
-// #if defined(MESH)
-// #if MBED_CONF_APP_MESH_RADIO_TYPE == ATMEL
-// #include "NanostackRfPhyAtmel.h"
-// NanostackRfPhyAtmel rf_phy(ATMEL_SPI_MOSI, ATMEL_SPI_MISO, ATMEL_SPI_SCLK, ATMEL_SPI_CS,
-//                            ATMEL_SPI_RST, ATMEL_SPI_SLP, ATMEL_SPI_IRQ, ATMEL_I2C_SDA, ATMEL_I2C_SCL);
-// #elif MBED_CONF_APP_MESH_RADIO_TYPE == MCR20
-// #include "NanostackRfPhyMcr20a.h"
-// NanostackRfPhyMcr20a rf_phy(MCR20A_SPI_MOSI, MCR20A_SPI_MISO, MCR20A_SPI_SCLK, MCR20A_SPI_CS, MCR20A_SPI_RST, MCR20A_SPI_IRQ);
-// #endif //MBED_CONF_APP_RADIO_TYPE
-// #endif //MESH
-
-// #ifndef MESH
 // This is address to mbed Device Connector
 #define MBED_SERVER_ADDRESS "coap://api.connector.mbed.com:5684"
 // #else
@@ -379,24 +353,9 @@ Add MBEDTLS_NO_DEFAULT_ENTROPY_SOURCES and MBEDTLS_TEST_NULL_ENTROPY in mbed_app
     mbed_trace_print_function_set(trace_printer);
     NetworkInterface *network_interface = 0;
     int connect_success = -1;
-    // TODO: remove
-// #if MBED_CONF_APP_NETWORK_INTERFACE == WIFI
-//     output.printf("\n\rUsing WiFi \r\n");
-//     output.printf("\n\rConnecting to WiFi..\r\n");
-//     connect_success = esp.connect(MBED_CONF_APP_WIFI_SSID, MBED_CONF_APP_WIFI_PASSWORD);
-//     network_interface = &esp;
-// #elif MBED_CONF_APP_NETWORK_INTERFACE == ETHERNET
     output.printf("Using Ethernet\r\n");
     connect_success = eth.connect();
     network_interface = &eth;
-// #endif
-// #ifdef MESH
-//     output.printf("Using Mesh\r\n");
-//     output.printf("\n\rConnecting to Mesh..\r\n");
-//     mesh.initialize(&rf_phy);
-//     connect_success = mesh.connect();
-//     network_interface = &mesh;
-// #endif
     if(connect_success == 0) {
     output.printf("\n\rConnected to Network successfully\r\n");
     } else {
@@ -471,9 +430,4 @@ Add MBEDTLS_NO_DEFAULT_ENTROPY_SOURCES and MBEDTLS_TEST_NULL_ENTROPY in mbed_app
             button_resource.handle_button_click();
         }
     }
-
-    // mbed_client.test_unregister();
-    // red_led = ON;
-    // green_led = OFF;
-    // //status_ticker.detach();
 }
