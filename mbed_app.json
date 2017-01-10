@@ -1,29 +1,28 @@
 {
     "config": {
-        "network-interface":{
-            "help": "options are ETHERNET,WIFI,MESH_LOWPAN_ND,MESH_THREAD",
-            "value": "ETHERNET"
+        "client-mode":{
+            "help":"TCP or UDP mode for client",
+            "value":"M2MInterface::TCP"
         },
-        "mesh_radio_type": {
-        	"help": "options are ATMEL, MCR20",
-        	"value": "ATMEL"
+        "observation-button":{
+            "help":"Button used to send observation to connector when pressed",
+            "value":"SW2"
         },
-        "wifi-ssid": {
-            "help": "WiFi SSID",
-            "value": "\"SSID\""
+        "unregister-button":{
+            "help":"Button used to send observation to connector when pressed",
+            "value":"SW3"
         },
-        "wifi-password": {
-            "help": "WiFi Password",
-            "value": "\"Password\""
+        "led-on":{
+            "help":"macro to turn LED on",
+            "macro_name":"ON",
+            "value":1
         },
-        "wifi-tx": {
-            "help": "TX pin for serial connection to external device",
-            "value": "D1"
-        },
-        "wifi-rx": {
-            "help": "RX pin for serial connection to external device",
-            "value": "D0"
+        "led-off":{
+            "help":"macro to turn LED off",
+            "macro_name":"OFF",
+            "value":0
         }
+
     },
     "macros": ["MBEDTLS_USER_CONFIG_FILE=\"mbedtls_mbed_client_config.h\""],
     "target_overrides": {
@@ -33,13 +32,13 @@
             "mbed-mesh-api.6lowpan-nd-channel": 12,
             "mbed-trace.enable": 0
         },
-        "NUCLEO_F401RE": {
-            "wifi-tx": "PA_11",
-            "wifi-rx": "PA_12"
-        },
-        "NUCLEO_F411RE": {
-            "wifi-tx": "PA_11",
-            "wifi-rx": "PA_12"
+        "K64F": {
+            "led-on":  0,
+            "led-off": 1
+        }
+        , "NUCLEO_F429ZI": {
+            "observation-button": "USER_BUTTON",
+            "unregister-button": "NC"   
         }
     }
 }

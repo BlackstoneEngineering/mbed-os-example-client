@@ -32,3 +32,4 @@ yotta_targets/
 build/
 .yotta.json
 source/security.h
+security.h

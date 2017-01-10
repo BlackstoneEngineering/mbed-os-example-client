@@ -25,40 +25,15 @@
 #include "mbed.h"
 #include "rtos.h"
 
-#if MBED_CONF_APP_NETWORK_INTERFACE == WIFI
-#include "ESP8266Interface.h"
-ESP8266Interface esp(MBED_CONF_APP_WIFI_TX, MBED_CONF_APP_WIFI_RX);
-#elif MBED_CONF_APP_NETWORK_INTERFACE == ETHERNET
 #include "EthernetInterface.h"
 EthernetInterface eth;
-#elif MBED_CONF_APP_NETWORK_INTERFACE == MESH_LOWPAN_ND
-#define MESH
-#include "NanostackInterface.h"
-LoWPANNDInterface mesh;
-#elif MBED_CONF_APP_NETWORK_INTERFACE == MESH_THREAD
-#define MESH
-#include "NanostackInterface.h"
-ThreadInterface mesh;
-#endif
 
-#if defined(MESH)
-#if MBED_CONF_APP_MESH_RADIO_TYPE == ATMEL
-#include "NanostackRfPhyAtmel.h"
-NanostackRfPhyAtmel rf_phy(ATMEL_SPI_MOSI, ATMEL_SPI_MISO, ATMEL_SPI_SCLK, ATMEL_SPI_CS,
-                           ATMEL_SPI_RST, ATMEL_SPI_SLP, ATMEL_SPI_IRQ, ATMEL_I2C_SDA, ATMEL_I2C_SCL);
-#elif MBED_CONF_APP_MESH_RADIO_TYPE == MCR20
-#include "NanostackRfPhyMcr20a.h"
-NanostackRfPhyMcr20a rf_phy(MCR20A_SPI_MOSI, MCR20A_SPI_MISO, MCR20A_SPI_SCLK, MCR20A_SPI_CS, MCR20A_SPI_RST, MCR20A_SPI_IRQ);
-#endif //MBED_CONF_APP_RADIO_TYPE
-#endif //MESH
-
-#ifndef MESH
 // This is address to mbed Device Connector
 #define MBED_SERVER_ADDRESS "coap://api.connector.mbed.com:5684"
-#else
-// This is address to mbed Device Connector
-#define MBED_SERVER_ADDRESS "coaps://[2607:f0d0:2601:52::20]:5684"
-#endif
+// #else
+// // This is address to mbed Device Connector
+// #define MBED_SERVER_ADDRESS "coaps://[2607:f0d0:2601:52::20]:5684"
+// #endif
 
 Serial output(USBTX, USBRX);
 
@@ -67,10 +42,9 @@ DigitalOut red_led(LED1);
 DigitalOut green_led(LED2);
 DigitalOut blue_led(LED3);
 Ticker status_ticker;
-void blinky() {
-    green_led = !green_led;
-
-}
+ void green_blinky() {
+     green_led = !green_led;
+ }
 
 // These are example resource values for the Device Object
 struct MbedClientDevice device = {
@@ -83,18 +57,11 @@ struct MbedClientDevice device = {
 // Instantiate the class which implements LWM2M Client API (from simpleclient.h)
 MbedClient mbed_client(device);
 
-
 // In case of K64F board , there is button resource available
 // to change resource value and unregister
-#ifdef TARGET_K64F
 // Set up Hardware interrupt button.
-InterruptIn obs_button(SW2);
-InterruptIn unreg_button(SW3);
-#else
-//In non K64F boards , set up a timer to simulate updating resource,
-// there is no functionality to unregister.
-Ticker timer;
-#endif
+InterruptIn obs_button(MBED_CONF_APP_OBSERVATION_BUTTON);
+InterruptIn unreg_button(MBED_CONF_APP_UNREGISTER_BUTTON);
 
 /*
  * Arguments for running "blink" in it's own thread.
@@ -154,8 +121,8 @@ public:
 
     void blink(void *argument) {
         // read the value of 'Pattern'
-        status_ticker.detach();
-        green_led = 1;
+        //status_ticker.detach();
+        green_led = OFF;
 
         M2MObjectInstance* inst = led_object->object_instance();
         M2MResource* res = inst->resource("5853");
@@ -203,15 +170,17 @@ private:
     BlinkArgs *blink_args;
     void do_blink() {
         // blink the LED
-        red_led = !red_led;
+        blue_led = !blue_led;
         // up the position, if we reached the end of the vector
         if (blink_args->position >= blink_args->blink_pattern.size()) {
             // send delayed response after blink is done
             M2MObjectInstance* inst = led_object->object_instance();
             M2MResource* led_res = inst->resource("5850");
             led_res->send_delayed_post_response();
-            red_led = 1;
-            status_ticker.attach_us(blinky, 250000);
+            // go back to default state
+            blue_led = OFF;
+            green_led = ON;
+            //status_ticker.attach_us(blinky, 250000);
             return;
         }
         // Invoke same function after `delay_ms` (upping position)
@@ -258,11 +227,7 @@ public:
 
         // up counter
         counter++;
-#ifdef TARGET_K64F
         printf("handle_button_click, new value of counter is %d\r\n", counter);
-#else
-        printf("simulate button_click, new value of counter is %d\r\n", counter);
-#endif
         // serialize the value of counter as a string, and tell connector
         char buffer[20];
         int size = sprintf(buffer,"%d",counter);
@@ -332,6 +297,9 @@ osThreadId mainThread;
 void unregister() {
     registered = false;
     updates.release();
+    red_led = ON; // turn on red LED
+    green_led = OFF;
+    blue_led = OFF;
 }
 
 void button_clicked() {
@@ -369,9 +337,10 @@ Add MBEDTLS_NO_DEFAULT_ENTROPY_SOURCES and MBEDTLS_TEST_NULL_ENTROPY in mbed_app
 #endif
 
     srand(seed);
-    red_led = 1;
-    blue_led = 1;
-    status_ticker.attach_us(blinky, 250000);
+    red_led = OFF;
+    blue_led = OFF;
+    green_led = ON;
+    status_ticker.attach_us(green_blinky, 250000);
     // Keep track of the main thread
     mainThread = osThreadGetId();
 
@@ -384,27 +353,16 @@ Add MBEDTLS_NO_DEFAULT_ENTROPY_SOURCES and MBEDTLS_TEST_NULL_ENTROPY in mbed_app
     mbed_trace_print_function_set(trace_printer);
     NetworkInterface *network_interface = 0;
     int connect_success = -1;
-#if MBED_CONF_APP_NETWORK_INTERFACE == WIFI
-    output.printf("\n\rUsing WiFi \r\n");
-    output.printf("\n\rConnecting to WiFi..\r\n");
-    connect_success = esp.connect(MBED_CONF_APP_WIFI_SSID, MBED_CONF_APP_WIFI_PASSWORD);
-    network_interface = &esp;
-#elif MBED_CONF_APP_NETWORK_INTERFACE == ETHERNET
     output.printf("Using Ethernet\r\n");
     connect_success = eth.connect();
     network_interface = &eth;
-#endif
-#ifdef MESH
-    output.printf("Using Mesh\r\n");
-    output.printf("\n\rConnecting to Mesh..\r\n");
-    mesh.initialize(&rf_phy);
-    connect_success = mesh.connect();
-    network_interface = &mesh;
-#endif
     if(connect_success == 0) {
     output.printf("\n\rConnected to Network successfully\r\n");
     } else {
         output.printf("\n\rConnection to Network Failed %d! Exiting application....\r\n", connect_success);
+        status_ticker.detach();
+        green_led = OFF;
+        red_led = ON;
         return 0;
     }
     const char *ip_addr = network_interface->get_ip_address();
@@ -412,6 +370,10 @@ Add MBEDTLS_NO_DEFAULT_ENTROPY_SOURCES and MBEDTLS_TEST_NULL_ENTROPY in mbed_app
         output.printf("IP address %s\r\n", ip_addr);
     } else {
         output.printf("No IP address\r\n");
+        status_ticker.detach();
+        green_led = OFF;
+        red_led = ON;
+        return 0;
     }
 
     // we create our button and LED resources
@@ -419,7 +381,6 @@ Add MBEDTLS_NO_DEFAULT_ENTROPY_SOURCES and MBEDTLS_TEST_NULL_ENTROPY in mbed_app
     LedResource led_resource;
     BigPayloadResource big_payload_resource;
 
-#ifdef TARGET_K64F
     // On press of SW3 button on K64F board, example application
     // will call unregister API towards mbed Device Connector
     //unreg_button.fall(&mbed_client,&MbedClient::test_unregister);
@@ -427,10 +388,6 @@ Add MBEDTLS_NO_DEFAULT_ENTROPY_SOURCES and MBEDTLS_TEST_NULL_ENTROPY in mbed_app
 
     // Observation Button (SW2) press will send update of endpoint resource values to connector
     obs_button.fall(&button_clicked);
-#else
-    // Send update of endpoint resource values to connector every 15 seconds periodically
-    timer.attach(&button_clicked, 15.0);
-#endif
 
     // Create endpoint interface to manage register and unregister
     mbed_client.create_interface(MBED_SERVER_ADDRESS, network_interface);
@@ -455,6 +412,10 @@ Add MBEDTLS_NO_DEFAULT_ENTROPY_SOURCES and MBEDTLS_TEST_NULL_ENTROPY in mbed_app
     mbed_client.test_register(register_object, object_list);
     registered = true;
 
+    // Initialization complete
+    status_ticker.detach();
+    green_led = ON;
+
     while (true) {
         updates.wait(25000);
         if(registered) {
@@ -469,7 +430,4 @@ Add MBEDTLS_NO_DEFAULT_ENTROPY_SOURCES and MBEDTLS_TEST_NULL_ENTROPY in mbed_app
             button_resource.handle_button_click();
         }
     }
-
-    mbed_client.test_unregister();
-    status_ticker.detach();
 }
