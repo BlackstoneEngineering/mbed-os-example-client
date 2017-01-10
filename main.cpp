@@ -25,9 +25,8 @@
 #include "mbed.h"
 #include "rtos.h"
 
-#include "EthernetInterface.h"
-EthernetInterface eth;
-
+#include "ESP8266Interface.h"
+ESP8266Interface esp(MBED_CONF_APP_WIFI_TX, MBED_CONF_APP_WIFI_RX);
 // This is address to mbed Device Connector
 #define MBED_SERVER_ADDRESS "coap://api.connector.mbed.com:5684"
 // #else
@@ -353,9 +352,10 @@ Add MBEDTLS_NO_DEFAULT_ENTROPY_SOURCES and MBEDTLS_TEST_NULL_ENTROPY in mbed_app
     mbed_trace_print_function_set(trace_printer);
     NetworkInterface *network_interface = 0;
     int connect_success = -1;
-    output.printf("Using Ethernet\r\n");
-    connect_success = eth.connect();
-    network_interface = &eth;
+    output.printf("Using WiFi\r\n");
+    output.printf("Connecting to WiFi..\r\n");
+    connect_success = esp.connect(MBED_CONF_APP_WIFI_SSID, MBED_CONF_APP_WIFI_PASSWORD);
+    network_interface = &esp;
     if(connect_success == 0) {
     output.printf("\n\rConnected to Network successfully\r\n");
     } else {
